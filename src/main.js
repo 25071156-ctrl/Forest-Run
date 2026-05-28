@@ -3,7 +3,9 @@ const uiLayer = document.getElementById('ui-layer');
 const startMenu = document.getElementById('start-menu');
 const gameOverMenu = document.getElementById('game-over-menu');
 const hud = document.getElementById('hud');
-const scoreVal = document.getElementById('score-val');
+const distanceVal = document.getElementById('distance-val');
+const levelVal = document.getElementById('level-val');
+const levelUpText = document.getElementById('level-up-text');
 const finalScore = document.getElementById('final-score');
 const startBtn = document.getElementById('start-btn');
 const restartBtn = document.getElementById('restart-btn');
@@ -11,8 +13,9 @@ const levelUpMsg = document.getElementById('level-up-msg');
 
 // Game State
 let gameState = 'MENU'; // MENU, PLAYING, GAMEOVER
-let score = 0;
-let level2Reached = false;
+let distance = 0;
+let level = 1;
+let lastLevelMilestone = 0;
 let defaultSpeed = 0.5;
 let currentSpeed = defaultSpeed;
 let reqId;
@@ -117,17 +120,20 @@ function startGame() {
   gameState = 'PLAYING';
   
   // Reset Variables
-  score = 0;
-  level2Reached = false;
+  distance = 0;
+  level = 1;
+  lastLevelMilestone = 0;
   environment.isTransitioning = false; // reset color transition
-  // Reset colors back to green
+  
+  // Reset colors back to Level 1 theme (Forest Green)
   scene.fog.color.setHex(0x2d4c1e);
   scene.background.setHex(0x2d4c1e);
   environment.ground.material.color.setHex(0x1e4a21);
   document.body.style.backgroundColor = '#2d4c1e';
   
   currentSpeed = defaultSpeed;
-  scoreVal.innerText = score;
+  distanceVal.innerText = '0';
+  levelVal.innerText = '1';
   
   // Reset Objects
   player.reset();
@@ -149,7 +155,7 @@ function gameOver() {
   gameState = 'GAMEOVER';
   
   // Show UI
-  finalScore.innerText = Math.floor(score);
+  finalScore.innerText = Math.floor(distance);
   hud.classList.add('hidden');
   gameOverMenu.classList.remove('hidden');
   uiLayer.style.pointerEvents = 'auto'; // allow clicking buttons again
@@ -166,9 +172,9 @@ function gameLoop(time) {
     // Increase speed slowly
     currentSpeed += 0.0001;
 
-    // Update score
-    score += currentSpeed * 0.5;
-    scoreVal.innerText = Math.floor(score);
+    // Update distance (meters)
+    distance += currentSpeed * 0.05;
+    distanceVal.innerText = Math.floor(distance);
 
     // Update Entities
     environment.update(deltaTime, currentSpeed);
@@ -180,16 +186,28 @@ function gameLoop(time) {
       gameOver();
     }
 
-    // Check for Level 2 milestone
-    if (score >= 1000 && !level2Reached) {
-      level2Reached = true;
-      environment.transitionToYellow();
+    // Check for level up every 50 meters
+    const expectedLevel = Math.floor(distance / 50) + 1;
+    if (expectedLevel > level) {
+      level = expectedLevel;
+      levelVal.innerText = level;
+      
+      // Speed boosts on level up
+      currentSpeed += 0.15;
+      
+      // Transition environment colors
+      environment.transitionToLevel(level);
       
       // Flash level up text
+      levelUpText.innerText = `LEVEL ${level}`;
       levelUpMsg.classList.remove('hidden');
+      
+      const currentLevelCheck = level;
       setTimeout(() => {
-        levelUpMsg.classList.add('hidden');
-      }, 3000);
+        if (level === currentLevelCheck) {
+          levelUpMsg.classList.add('hidden');
+        }
+      }, 2000);
     }
   }
 

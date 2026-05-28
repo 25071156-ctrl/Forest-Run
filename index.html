@@ -27,20 +27,23 @@
 
       <!-- Game HUD -->
       <div id="hud" class="hidden">
-        <div class="score-box">
-          Score: <span id="score-val">0</span>
+        <div class="hud-item score-box">
+          Distance: <span id="distance-val">0</span> m
+        </div>
+        <div class="hud-item level-box">
+          Level: <span id="level-val">1</span>
         </div>
       </div>
 
       <!-- Level Up Message -->
       <div id="level-up-msg" class="hidden">
-        <h1>LEVEL 2</h1>
+        <h1 id="level-up-text">LEVEL 2</h1>
       </div>
 
       <!-- Game Over Menu -->
       <div id="game-over-menu" class="panel hidden">
         <h2>GAME OVER</h2>
-        <p>Final Score: <span id="final-score">0</span></p>
+        <p>Distance Run: <span id="final-score">0</span> m</p>
         <button id="restart-btn">TRY AGAIN</button>
       </div>
 
