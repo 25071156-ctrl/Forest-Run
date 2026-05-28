@@ -14,16 +14,22 @@ class ObstacleManager {
     this.lastTime = Date.now();
   }
 
-  createObstacle() {
-    // Pick random lane
-    const lane = this.lanes[Math.floor(Math.random() * this.lanes.length)];
-    
-    // Two types: tall (blocker) and short (jumpable)
-    const isTall = Math.random() > 0.5;
-    
-    const height = isTall ? 2 : 1;
-    const width = 1.8;
-    const depth = 2;
+  createObstacle(level = 1, laneIndex = -1) {
+    // Decide if this is a border obstacle (low, wide) that forces a jump
+    const borderChance = Math.min(level * 0.03, 0.3);
+    const isBorder = Math.random() < borderChance;
+
+    // Pick lane; for border we use center lane (0) and ignore laneIndex
+    const lane = isBorder ? 0 : (laneIndex !== -1 ? this.lanes[laneIndex] : this.lanes[Math.floor(Math.random() * this.lanes.length)]);
+
+    // Two types: tall (blocker) and short (jumpable) – overridden if border
+    // Increase tall obstacle chance with level
+    const tallChance = Math.min(0.5 + level * 0.05, 0.9);
+    const isTall = isBorder ? false : Math.random() < tallChance;
+
+    const height = isBorder ? 0.5 : (isTall ? 2 : 1);
+    const width = isBorder ? 12 : 1.8;
+    const depth = isBorder ? 2 : 2;
     
     const geo = new THREE.BoxGeometry(width, height, depth);
     const mat = new THREE.MeshStandardMaterial({
@@ -49,17 +55,21 @@ class ObstacleManager {
     });
   }
 
-  update(deltaTime, speed) {
+  update(deltaTime, speed, level = 1) {
     const now = Date.now();
     const elapsed = now - this.lastTime;
     
     this.spawnTimer += elapsed;
     
     // Spawn logic with speed scaling
-    const dynamicInterval = Math.max(200, this.spawnInterval - (speed * 1000));
+    const dynamicInterval = Math.max(100, this.spawnInterval - (speed * 1000) - (level * 20));
     
     if (this.spawnTimer > dynamicInterval) {
-      this.createObstacle();
+      this.createObstacle(level);
+      // At higher levels spawn a second obstacle in a different lane for extra challenge
+      if (level >= 3 && Math.random() < 0.35) {
+        this.createObstacle(level);
+      }
       this.spawnTimer = 0;
     }
     

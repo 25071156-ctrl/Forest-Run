@@ -7,8 +7,9 @@ const distanceVal = document.getElementById('distance-val');
 const levelVal = document.getElementById('level-val');
 const levelUpText = document.getElementById('level-up-text');
 const finalScore = document.getElementById('final-score');
-const startBtn = document.getElementById('start-btn');
-const restartBtn = document.getElementById('restart-btn');
+// We'll fetch the buttons after the DOM is ready
+let startBtn;
+let restartBtn;
 const levelUpMsg = document.getElementById('level-up-msg');
 
 // Game State
@@ -36,10 +37,10 @@ renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
 document.getElementById('game-container').appendChild(renderer.domElement);
 
-// Load Game Objects
 const environment = new Environment(scene);
 const player = new Player(scene);
 const obstacleManager = new ObstacleManager(scene);
+const mushroomManager = new MushroomManager(scene, player);
 
 // Handle Resize
 window.addEventListener('resize', () => {
@@ -113,14 +114,20 @@ window.addEventListener('touchend', (e) => {
 
 
 // UI Listeners
-startBtn.addEventListener('click', startGame);
-restartBtn.addEventListener('click', startGame);
+// UI Listeners – ensure DOM is ready before attaching
+document.addEventListener('DOMContentLoaded', () => {
+  startBtn = document.getElementById('start-btn');
+  restartBtn = document.getElementById('restart-btn');
+  startBtn.addEventListener('click', startGame);
+  restartBtn.addEventListener('click', startGame);
+});
 
 function startGame() {
   gameState = 'PLAYING';
   
   // Reset Variables
   distance = 0;
+  window.distance = 0;
   level = 1;
   lastLevelMilestone = 0;
   environment.isTransitioning = false; // reset color transition
@@ -138,6 +145,8 @@ function startGame() {
   // Reset Objects
   player.reset();
   obstacleManager.reset();
+  // Reset mushrooms and UI counter
+  mushroomManager.reset();
   
   // Toggle UI
   startMenu.classList.add('hidden');
@@ -169,45 +178,48 @@ function gameLoop(time) {
   lastTime = time;
 
   if (gameState === 'PLAYING') {
-    // Increase speed slowly
-    currentSpeed += 0.0001;
+    // Increase speed constantly — gets harder the longer you run
+    currentSpeed += 0.00015;
 
     // Update distance (meters)
     distance += currentSpeed * 0.05;
+    window.distance = distance; // expose for MushroomManager
     distanceVal.innerText = Math.floor(distance);
 
     // Update Entities
     environment.update(deltaTime, currentSpeed);
     player.update(deltaTime);
-    obstacleManager.update(deltaTime, currentSpeed);
+    obstacleManager.update(deltaTime, currentSpeed, level);
+// Update falling mushrooms based on level
+mushroomManager.update(deltaTime, level);
 
     // Check Collisions
     if (obstacleManager.checkCollision(player.box)) {
       gameOver();
     }
 
-    // Check for level up every 50 meters
-    const expectedLevel = Math.floor(distance / 50) + 1;
+    // Check for level up every 30 meters
+    const expectedLevel = Math.floor(distance / 30) + 1;
     if (expectedLevel > level) {
       level = expectedLevel;
       levelVal.innerText = level;
-      
-      // Speed boosts on level up
-      currentSpeed += 0.15;
-      
+
+      // Bigger speed boost on level up — game escalates fast like Subway Surfers
+      currentSpeed += 0.2;
+
       // Transition environment colors
       environment.transitionToLevel(level);
-      
+
       // Flash level up text
       levelUpText.innerText = `LEVEL ${level}`;
       levelUpMsg.classList.remove('hidden');
-      
+
       const currentLevelCheck = level;
       setTimeout(() => {
         if (level === currentLevelCheck) {
           levelUpMsg.classList.add('hidden');
         }
-      }, 2000);
+      }, 1500);
     }
   }
 
